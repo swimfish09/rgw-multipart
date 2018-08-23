@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>s3 rest multipart upload</title>
+<script type="text/javascript" src="browser-md5-file.min.js"></script>
+</head>
+<script type="text/javascript">
+	window.onload = function() {
+		var fileBox = document.getElementById('file');
+		fileBox.onchange = function() {
+			var file = this.files[0];
+			var md5;
+			console.info(file);
+			calcMD5(file);
+			//part 5MB
+			var part = 5 * 1024 * 1024;
+			var total = file.size;
+			var blob1 = file.slice(0, part);
+			var fileOfBlob1 = new File([ blob1 ], file.name);
+			var blob2 = file.slice(part, total);
+			var fileOfBlob2 = new File([ blob2 ], file.name);
+			uploadFile(fileOfBlob1, "http://server1:8081/test/P3.mp4?uploadId=2~VQtu_WZ_HuFTEz0lLH7f9ACT8HoHVx2&partNumber=1&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20180816T011514Z&X-Amz-SignedHeaders=host&X-Amz-Expires=86399&X-Amz-Credential=P19BA23Q6K5WA7J0GM2N%2F20180816%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=e83e57920e64fa3e22263843d0a668bdb07780f6067d668485b03953bb43c860");
+			uploadFile(fileOfBlob2, "http://server1:8081/test/P3.mp4?uploadId=2~VQtu_WZ_HuFTEz0lLH7f9ACT8HoHVx2&partNumber=2&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20180816T011514Z&X-Amz-SignedHeaders=host&X-Amz-Expires=86400&X-Amz-Credential=P19BA23Q6K5WA7J0GM2N%2F20180816%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=bbd77759ce05409a505fb2bbc54905725355aeb461c10ebbdee025b87faf538d");
+			function uploadFile(blob, url) {
+				console.info(blob);
+				calcMD5(blob);
+				browserMD5File(blob, function (err, md5) {
+					var xhr = new XMLHttpRequest();
+					xhr.open('put', url, true);
+					//xhr.setRequestHeader("Content-MD5", md5);
+					xhr.setRequestHeader("Content-length", blob.size);
+					xhr.onreadystatechange = function() {
+						if (xhr.readyState == 4 && xhr.status == 200) {
+							//check file md5(获取响应头中etag的值与md5进行对比)
+							console.info("upload success!");
+							console.info(xhr.getResponseHeader("ETag"));
+						}
+					}
+					//开始发送
+					xhr.send(blob);
+				});
+			}
+		}
+		// 等所有分段上传完毕后需要发送请求到后台结束分段上传
+		function calcMD5(file) {
+			var start = new Date().getTime();
+			console.info("start: " + start)
+			browserMD5File(file, function (err, md5) {
+				console.info(md5);
+				var end = new Date().getTime();
+				console.info("end: " + end)
+				console.info("cost time: " + (end - start))
+			});
+		}
+	}
+</script>
+<body>
+	<h1>断点续传文件：</h1>
+	<div class="container">
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<input type="file" id="file" />
+				<blockquote style="word-break: break-all;"></blockquote>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
